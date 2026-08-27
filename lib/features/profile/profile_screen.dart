@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/supabase_config.dart';
 import '../../l10n/rp_strings.dart';
+import '../../services/profile_service.dart';
 import '../../theme/rp_colors.dart';
 import '../../widgets/rp_hero_background.dart';
 
@@ -14,33 +15,26 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  final _service = ProfileService();
   Map<String, dynamic>? _profile;
+  int _cosmeticsCount = 0;
   bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadProfile();
+    _loadAll();
   }
 
-  Future<void> _loadProfile() async {
-    final userId = supabase.auth.currentUser?.id;
-    if (userId == null) {
-      setState(() => _loading = false);
-      return;
-    }
-    try {
-      final data = await supabase
-          .from('profiles')
-          .select()
-          .eq('id', userId)
-          .maybeSingle();
+  Future<void> _loadAll() async {
+    final profile = await _service.loadProfile();
+    final owned = await _service.loadOwnedCosmetics();
+    if (mounted) {
       setState(() {
-        _profile = data;
+        _profile = profile;
+        _cosmeticsCount = owned.length;
         _loading = false;
       });
-    } catch (_) {
-      setState(() => _loading = false);
     }
   }
 
@@ -76,13 +70,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 24),
               if (_loading)
-                const CircularProgressIndicator(color: RpColors.purple)
+                const Expanded(
+                    child: Center(
+                        child: CircularProgressIndicator(
+                            color: RpColors.purple)))
               else
                 Expanded(
                   child: ListView(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     children: [
-                      // Avatar
                       Center(
                         child: Container(
                           width: 96,
@@ -90,8 +86,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           decoration: BoxDecoration(
                             color: RpColors.purpleSoft,
                             shape: BoxShape.circle,
-                            border: Border.all(
-                                color: RpColors.purple, width: 3),
+                            border:
+                                Border.all(color: RpColors.purple, width: 3),
                           ),
                           child: const Icon(
                             Icons.sentiment_satisfied_alt_rounded,
@@ -134,6 +130,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         value: '${_profile?['hirncoins'] ?? 0}',
                         icon: Icons.monetization_on_rounded,
                         color: RpColors.hirncoin,
+                      ),
+                      const SizedBox(height: 12),
+                      _StatRow(
+                        label: RpStrings.profileStreak,
+                        value: '${_profile?['current_streak'] ?? 0} 🔥',
+                        icon: Icons.local_fire_department_rounded,
+                        color: RpColors.danger,
+                      ),
+                      const SizedBox(height: 12),
+                      _StatRow(
+                        label: 'Cosmetics',
+                        value: '$_cosmeticsCount',
+                        icon: Icons.auto_awesome_rounded,
+                        color: RpColors.pink,
                       ),
                     ],
                   ),

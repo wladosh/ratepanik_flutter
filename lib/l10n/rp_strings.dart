@@ -49,7 +49,7 @@ abstract final class RpStrings {
   static const homeStreakTitle = 'Streak';
   static const homeStreakNull =
       'Kalendertage in Folge — noch nicht gespeichert.';
-  static String homeStreakDays(int n) =>
+  static String homeStreakBody(int n) =>
       'Kalendertage in Folge gespielt.';
   static const homeCreateKicker = 'Du bist der Host';
   static const homeCreateTitle = 'Raum erstellen';
@@ -91,6 +91,7 @@ abstract final class RpStrings {
   static const matchFinal = 'Endergebnis';
   static const matchPlayAgain = 'Nochmal spielen';
   static const matchBackHome = 'Zurück zum Start';
+  static const matchRewardsTitle = 'Belohnungen';
 
   // Number guess
   static const guessTitle = 'Wie viel?';
@@ -120,17 +121,44 @@ abstract final class RpStrings {
   static const shopBuy = 'Kaufen';
   static const shopOpen = 'Öffnen';
   static const shopNotEnough = 'Nicht genug Hirncoins';
+  static const shopBalance = 'Guthaben';
+  static const shopOpening = 'Wird geöffnet…';
+  static const shopRevealTitle = 'Gefunden!';
+  static const shopDuplicate = 'Schon vorhanden — Hirncoins erstattet';
+  static const shopOwnedItems = 'Gesammelte Items';
+  static const shopEquip = 'Anlegen';
+  static const shopEquipped = 'Angelegt';
+  static const shopUnequip = 'Ablegen';
 
   // Profile
   static const profileTitle = 'Profil';
   static const profileLevel = 'Level';
   static const profileXp = 'XP';
   static const profileHirncoins = 'Hirncoins';
+  static const profileStreak = 'Streak';
+  static const profileGames = 'Spiele';
+
+  // Username
+  static const usernameTitle = 'Benutzername wählen';
+  static const usernameHint = 'Dein Benutzername';
+  static const usernameSubmit = 'Bestätigen';
+  static const usernameTaken = 'Dieser Name ist bereits vergeben.';
+  static const usernameInvalid = 'Min. 3 Zeichen, max. 20.';
+  static const usernameSuccess = 'Benutzername gespeichert!';
 
   // Friends
   static const friendsTitle = 'Freunde';
   static const friendsAdd = 'Freund hinzufügen';
   static const friendsEmpty = 'Noch keine Freunde.';
+  static const friendsCodeLabel = 'Dein Freundescode';
+  static const friendsAddHint = 'Benutzername oder Code';
+  static const friendsRequest = 'Anfrage senden';
+  static const friendsRequestSent = 'Anfrage gesendet!';
+  static const friendsAccept = 'Annehmen';
+  static const friendsDecline = 'Ablehnen';
+  static const friendsRemove = 'Entfernen';
+  static const friendsPending = 'Ausstehende Anfragen';
+  static const friendsAccepted = 'Freunde';
 
   // Achievements
   static const achievementsTitle = 'Erfolge';

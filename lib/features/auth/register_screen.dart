@@ -44,7 +44,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
         setState(() => _error = 'E-Mail und Passwort eingeben.');
         return;
       }
-      await supabase.auth.signUp(email: email, password: password);
+      final resp = await supabase.auth.signUp(email: email, password: password);
+      if (resp.user != null && resp.session != null && mounted) {
+        context.go(RpRoutes.username);
+        return;
+      }
       setState(() => _success = RpStrings.registerSuccess);
     } catch (e) {
       setState(() => _error = RpStrings.registerError);
