@@ -4,17 +4,49 @@ import 'package:go_router/go_router.dart';
 import '../../l10n/rp_strings.dart';
 import '../../routing/app_router.dart';
 import '../../services/game_service.dart';
+import '../../services/profile_service.dart';
 import '../../theme/rp_colors.dart';
 import '../../theme/rp_theme.dart';
 import '../../widgets/rp_buttons.dart';
+import '../../widgets/rp_hero_background.dart';
 
-class FinalScreen extends StatelessWidget {
+class FinalScreen extends StatefulWidget {
   const FinalScreen({super.key, required this.game});
   final GameService game;
 
   @override
+  State<FinalScreen> createState() => _FinalScreenState();
+}
+
+class _FinalScreenState extends State<FinalScreen> {
+  final _profileService = ProfileService();
+  MatchReward? _reward;
+  int? _streak;
+
+  @override
+  void initState() {
+    super.initState();
+    _claimRewards();
+  }
+
+  Future<void> _claimRewards() async {
+    final roomId = widget.game.state.room?.id;
+    if (roomId == null) return;
+
+    final reward = await _profileService.grantMatchRewards(roomId);
+    final streak = await _profileService.recordDailyPlay();
+
+    if (mounted) {
+      setState(() {
+        _reward = reward;
+        _streak = streak;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final state = game.state;
+    final state = widget.game.state;
     final ranked = List.of(state.players)
       ..sort((a, b) => b.score.compareTo(a.score));
     final isHost = state.isHost;
@@ -23,7 +55,7 @@ class FinalScreen extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
           const Text('🏆', style: TextStyle(fontSize: 48)),
           const SizedBox(height: 8),
           Text(
@@ -33,7 +65,12 @@ class FinalScreen extends StatelessWidget {
                 .headlineSmall
                 ?.copyWith(fontWeight: FontWeight.w800),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
+
+          // Rewards banner
+          if (_reward != null) _RewardsBanner(reward: _reward!, streak: _streak),
+          if (_reward != null) const SizedBox(height: 12),
+
           Expanded(
             child: ListView.builder(
               itemCount: ranked.length,
@@ -96,16 +133,106 @@ class FinalScreen extends StatelessWidget {
             RpPrimaryButton(
               label: RpStrings.matchPlayAgain,
               onPressed: () async {
-                await game.resetGame();
+                await widget.game.resetGame();
               },
             ),
           const SizedBox(height: 12),
           RpOutlineButton(
             label: RpStrings.matchBackHome,
             onPressed: () {
-              game.goHome();
+              widget.game.goHome();
               context.go(RpRoutes.home);
             },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RewardsBanner extends StatelessWidget {
+  const _RewardsBanner({required this.reward, this.streak});
+  final MatchReward reward;
+  final int? streak;
+
+  @override
+  Widget build(BuildContext context) {
+    return RpCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          Text(
+            RpStrings.matchRewardsTitle,
+            style: Theme.of(context)
+                .textTheme
+                .titleSmall
+                ?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _RewardChip(
+                icon: Icons.trending_up_rounded,
+                color: RpColors.success,
+                label: '+${reward.xpAwarded} XP',
+              ),
+              _RewardChip(
+                icon: Icons.monetization_on_rounded,
+                color: RpColors.hirncoin,
+                label: '+${reward.hirncoinsAwarded}',
+              ),
+              if (streak != null && streak! > 0)
+                _RewardChip(
+                  icon: Icons.local_fire_department_rounded,
+                  color: RpColors.danger,
+                  label: '$streak🔥',
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Platz ${reward.placement}',
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: RpColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RewardChip extends StatelessWidget {
+  const _RewardChip({
+    required this.icon,
+    required this.color,
+    required this.label,
+  });
+  final IconData icon;
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(RpRadii.pill),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: color),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w800,
+                ),
           ),
         ],
       ),
@@ -126,7 +253,7 @@ class _PlacementIcon extends StatelessWidget {
     return Container(
       width: 32,
       height: 32,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: RpColors.bgMuted,
         shape: BoxShape.circle,
       ),

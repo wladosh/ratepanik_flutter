@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 
 import '../features/auth/login_screen.dart';
 import '../features/auth/register_screen.dart';
+import '../features/auth/username_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/landing/landing_screen.dart';
 import '../features/lobby/lobby_screen.dart';
@@ -15,6 +16,7 @@ abstract final class RpRoutes {
   static const landing = '/';
   static const login = '/login';
   static const register = '/register';
+  static const username = '/username';
   static const home = '/home';
   static const lobby = '/lobby';
   static const match = '/match';
@@ -38,6 +40,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: RpRoutes.register,
       builder: (context, state) => const RegisterScreen(),
+    ),
+    GoRoute(
+      path: RpRoutes.username,
+      builder: (context, state) => const UsernameScreen(),
     ),
     GoRoute(
       path: RpRoutes.home,
