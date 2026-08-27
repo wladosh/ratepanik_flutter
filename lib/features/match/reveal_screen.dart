@@ -5,7 +5,6 @@ import '../../models/db_models.dart';
 import '../../models/game_scoring.dart';
 import '../../services/game_service.dart';
 import '../../theme/rp_colors.dart';
-import '../../theme/rp_theme.dart';
 import '../../widgets/rp_buttons.dart';
 import '../../widgets/rp_hero_background.dart';
 
@@ -109,7 +108,7 @@ class RevealScreen extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            prompt.prompt as String,
+            prompt.prompt,
             textAlign: TextAlign.center,
             style: Theme.of(context)
                 .textTheme

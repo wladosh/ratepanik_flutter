@@ -47,6 +47,7 @@ class _LandingScreenState extends State<LandingScreen> {
       setState(() => _codeError = RpStrings.landingCodeError);
       return;
     }
+    final game = RatepanikApp.gameOf(context);
     setState(() => _joining = true);
     try {
       var user = supabase.auth.currentUser;
@@ -56,7 +57,6 @@ class _LandingScreenState extends State<LandingScreen> {
       }
       if (user == null) return;
 
-      final game = RatepanikApp.gameOf(context);
       final name = generateGuestName();
       final err = await game.joinRoom(code, name);
       if (err == null && mounted) {

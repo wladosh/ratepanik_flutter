@@ -6,6 +6,7 @@ import '../../l10n/rp_strings.dart';
 import '../../routing/app_router.dart';
 import '../../services/game_service.dart';
 import '../../theme/rp_colors.dart';
+import '../../theme/rp_theme.dart';
 import '../../widgets/rp_hero_background.dart';
 import 'theme_pick_screen.dart';
 import 'number_guess_screen.dart';

@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import '../../core/supabase_config.dart';
 import '../../l10n/rp_strings.dart';
 import '../../theme/rp_colors.dart';
-import '../../theme/rp_theme.dart';
 import '../../widgets/rp_hero_background.dart';
 
 class ProfileScreen extends StatefulWidget {

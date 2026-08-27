@@ -7,7 +7,6 @@ import '../../services/game_service.dart';
 import '../../theme/rp_colors.dart';
 import '../../theme/rp_theme.dart';
 import '../../widgets/rp_buttons.dart';
-import '../../widgets/rp_hero_background.dart';
 
 class FinalScreen extends StatelessWidget {
   const FinalScreen({super.key, required this.game});

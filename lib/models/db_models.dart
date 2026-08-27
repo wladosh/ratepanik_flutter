@@ -276,14 +276,14 @@ class Prompt {
       );
 }
 
-class Theme {
+class QuizTheme {
   final String id;
   final String slug;
   final String nameDe;
 
-  Theme({required this.id, required this.slug, required this.nameDe});
+  QuizTheme({required this.id, required this.slug, required this.nameDe});
 
-  factory Theme.fromJson(Map<String, dynamic> json) => Theme(
+  factory QuizTheme.fromJson(Map<String, dynamic> json) => QuizTheme(
         id: json['id'] as String,
         slug: json['slug'] as String? ?? '',
         nameDe: json['name_de'] as String? ?? '',

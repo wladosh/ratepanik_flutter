@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import '../../core/supabase_config.dart';
 import '../../l10n/rp_strings.dart';
 import '../../theme/rp_colors.dart';
-import '../../theme/rp_theme.dart';
 import '../../widgets/rp_hero_background.dart';
 
 class FriendsScreen extends StatefulWidget {
@@ -88,7 +87,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                           'assets/rp/rp_icon_friends_slimes_128.png',
                           width: 96,
                           height: 96,
-                          errorBuilder: (_, __, ___) => const Icon(
+                          errorBuilder: (context, error, stackTrace) => const Icon(
                             Icons.people_alt_rounded,
                             size: 64,
                             color: RpColors.purple,

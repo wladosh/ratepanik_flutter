@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../l10n/rp_strings.dart';
 import '../../theme/rp_colors.dart';
-import '../../theme/rp_theme.dart';
 import '../../widgets/rp_buttons.dart';
 import '../../widgets/rp_hero_background.dart';
 
@@ -123,7 +122,7 @@ class _LootboxCard extends StatelessWidget {
               child: Image.asset(
                 assetPath,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const Icon(
+                errorBuilder: (context, error, stackTrace) => const Icon(
                   Icons.card_giftcard_rounded,
                   color: RpColors.purple,
                   size: 36,

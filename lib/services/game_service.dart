@@ -55,7 +55,7 @@ class GameState {
   final List<DbPickCorrectTurn> turns;
   final String? myPlayerId;
   final List<Prompt> prompts;
-  final List<Theme> themeOptions;
+  final List<QuizTheme> themeOptions;
   final String? error;
   final String? notice;
   final bool wasKicked;
@@ -162,7 +162,7 @@ class GameState {
     String? myPlayerId,
     bool clearMyPlayerId = false,
     List<Prompt>? prompts,
-    List<Theme>? themeOptions,
+    List<QuizTheme>? themeOptions,
     String? error,
     bool clearError = false,
     String? notice,
@@ -444,18 +444,17 @@ class GameService extends ChangeNotifier {
   }
 
   Future<void> _refetchAll(String roomId) async {
-    final results = await Future.wait([
-      supabase.from('rooms').select().eq('id', roomId).single(),
-      supabase.from('players').select().eq('room_id', roomId),
-      supabase.from('answers').select().eq('room_id', roomId),
-      supabase.from('match_blocks').select().eq('room_id', roomId),
-      supabase.from('pick_correct_turns').select().eq('room_id', roomId),
-    ]);
-    final roomData = results[0] as Map<String, dynamic>;
-    final playersData = results[1] as List<dynamic>;
-    final answersData = results[2] as List<dynamic>;
-    final blocksData = results[3] as List<dynamic>;
-    final turnsData = results[4] as List<dynamic>;
+    final roomFuture = supabase.from('rooms').select().eq('id', roomId).single();
+    final playersFuture = supabase.from('players').select().eq('room_id', roomId);
+    final answersFuture = supabase.from('answers').select().eq('room_id', roomId);
+    final blocksFuture = supabase.from('match_blocks').select().eq('room_id', roomId);
+    final turnsFuture = supabase.from('pick_correct_turns').select().eq('room_id', roomId);
+
+    final roomData = await roomFuture;
+    final playersData = await playersFuture;
+    final answersData = await answersFuture;
+    final blocksData = await blocksFuture;
+    final turnsData = await turnsFuture;
 
     _emit(_state.copyWith(
       room: DbRoom.fromJson(roomData),
@@ -528,7 +527,7 @@ class GameService extends ChangeNotifier {
         .inFilter('id', block.themeOptions!);
     final data = resp as List<dynamic>;
     _emit(_state.copyWith(
-        themeOptions: data.map((e) => Theme.fromJson(e)).toList()));
+        themeOptions: data.map((e) => QuizTheme.fromJson(e)).toList()));
   }
 
   // ── Actions ──
@@ -760,7 +759,7 @@ class GameService extends ChangeNotifier {
         .select('id, slug, name_de')
         .inFilter('id', themeIds);
     final themes = (await themesQuery as List<dynamic>)
-        .map((e) => Theme.fromJson(e))
+        .map((e) => QuizTheme.fromJson(e))
         .toList();
 
     var pool = allowed != null
@@ -823,10 +822,9 @@ class GameService extends ChangeNotifier {
     final room = _state.room;
     final block = _state.currentBlock;
     final prompt = _state.currentPrompt;
-    if (room == null ||
-        _state.myPlayerId == null ||
-        block == null ||
-        prompt == null) return;
+    if (room == null || _state.myPlayerId == null || block == null || prompt == null) {
+      return;
+    }
 
     await supabase.from('answers').insert({
       'room_id': room.id,
@@ -845,10 +843,9 @@ class GameService extends ChangeNotifier {
     final room = _state.room;
     final block = _state.currentBlock;
     final prompt = _state.currentPrompt;
-    if (room == null ||
-        _state.myPlayerId == null ||
-        block == null ||
-        prompt == null) return;
+    if (room == null || _state.myPlayerId == null || block == null || prompt == null) {
+      return;
+    }
 
     await supabase.from('answers').insert({
       'room_id': room.id,
@@ -867,10 +864,9 @@ class GameService extends ChangeNotifier {
     final room = _state.room;
     final block = _state.currentBlock;
     final prompt = _state.currentPrompt;
-    if (room == null ||
-        _state.myPlayerId == null ||
-        block == null ||
-        prompt == null) return;
+    if (room == null || _state.myPlayerId == null || block == null || prompt == null) {
+      return;
+    }
 
     await supabase.from('answers').insert({
       'room_id': room.id,
@@ -889,10 +885,9 @@ class GameService extends ChangeNotifier {
     final room = _state.room;
     final block = _state.currentBlock;
     final prompt = _state.currentPrompt;
-    if (room == null ||
-        _state.myPlayerId == null ||
-        block == null ||
-        prompt == null) return;
+    if (room == null || _state.myPlayerId == null || block == null || prompt == null) {
+      return;
+    }
     if (block.mode != 'pick_correct') return;
     if (_state.correctTurnsCount >= 4) return;
     if (_state.blockTurns.any((t) => t.cardIndex == cardIndex)) return;

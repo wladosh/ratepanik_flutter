@@ -5,7 +5,6 @@ import '../../services/game_service.dart';
 import '../../theme/rp_colors.dart';
 import '../../theme/rp_theme.dart';
 import '../../widgets/rp_buttons.dart';
-import '../../widgets/rp_hero_background.dart';
 
 class BlockScoreboardScreen extends StatelessWidget {
   const BlockScoreboardScreen({super.key, required this.game});

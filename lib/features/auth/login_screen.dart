@@ -6,7 +6,6 @@ import '../../core/supabase_config.dart';
 import '../../l10n/rp_strings.dart';
 import '../../routing/app_router.dart';
 import '../../theme/rp_colors.dart';
-import '../../theme/rp_theme.dart';
 import '../../widgets/rp_buttons.dart';
 import '../../widgets/rp_hero_background.dart';
 

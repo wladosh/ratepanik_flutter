@@ -4,7 +4,6 @@ import '../../l10n/rp_strings.dart';
 import '../../services/game_service.dart';
 import '../../theme/rp_colors.dart';
 import '../../theme/rp_theme.dart';
-import '../../widgets/rp_hero_background.dart';
 
 class FindLieScreen extends StatelessWidget {
   const FindLieScreen({super.key, required this.game});

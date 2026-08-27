@@ -5,7 +5,6 @@ import '../../models/game_scoring.dart';
 import '../../services/game_service.dart';
 import '../../theme/rp_colors.dart';
 import '../../theme/rp_theme.dart';
-import '../../widgets/rp_hero_background.dart';
 
 const _themeIcons = <String, String>{
   'gaming': 'assets/rp/rp_theme_gaming_256.png',
@@ -62,7 +61,7 @@ class ThemePickScreen extends StatelessWidget {
           Expanded(
             child: ListView.separated(
               itemCount: themes.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final theme = themes[index];
                 final assetPath = _themeIcons[theme.slug];
@@ -97,7 +96,7 @@ class ThemePickScreen extends StatelessWidget {
                                   width: 56,
                                   height: 56,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) =>
+                                  errorBuilder: (context, error, stackTrace) =>
                                       const SizedBox(width: 56, height: 56),
                                 ),
                               )

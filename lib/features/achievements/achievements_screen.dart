@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import '../../core/supabase_config.dart';
 import '../../l10n/rp_strings.dart';
 import '../../theme/rp_colors.dart';
-import '../../theme/rp_theme.dart';
 import '../../widgets/rp_hero_background.dart';
 
 class AchievementsScreen extends StatefulWidget {
@@ -166,7 +165,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         path,
         width: 40,
         height: 40,
-        errorBuilder: (_, __, ___) =>
+        errorBuilder: (context, error, stackTrace) =>
             const Icon(Icons.emoji_events_rounded, color: RpColors.yellow),
       );
     }

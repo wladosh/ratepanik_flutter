@@ -12,6 +12,7 @@ Future<void> initSupabase() async {
     _supabaseAnonKey.isNotEmpty,
     'SUPABASE_ANON_KEY must be set via --dart-define=SUPABASE_ANON_KEY=…',
   );
+  // ignore: deprecated_member_use
   await Supabase.initialize(url: _supabaseUrl, anonKey: _supabaseAnonKey);
 }
 
