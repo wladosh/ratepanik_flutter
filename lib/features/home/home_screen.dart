@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app.dart';
+import '../../core/supabase_config.dart';
 import '../../l10n/rp_strings.dart';
 import '../../routing/app_router.dart';
 import '../../theme/rp_colors.dart';
 import '../../theme/rp_theme.dart';
 import '../../widgets/rp_buttons.dart';
-import '../../widgets/rp_coming_soon.dart';
 import '../../widgets/rp_hero_background.dart';
 import '../../widgets/rp_room_code_field.dart';
 
@@ -20,11 +21,18 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final _codeController = TextEditingController();
   String? _joinError;
+  bool _creating = false;
+  bool _joining = false;
 
   @override
   void initState() {
     super.initState();
     _codeController.addListener(() => setState(() => _joinError = null));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (supabase.auth.currentUser == null) {
+        context.go(RpRoutes.landing);
+      }
+    });
   }
 
   @override
@@ -33,17 +41,64 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  void _onJoin() {
+  Future<void> _createRoom() async {
+    if (_creating) return;
+    setState(() => _creating = true);
+    try {
+      final user = supabase.auth.currentUser!;
+      final displayName = user.userMetadata?['display_name'] as String? ??
+          user.userMetadata?['full_name'] as String? ??
+          user.email?.split('@').first ??
+          'Host';
+      final game = RatepanikApp.gameOf(context);
+      final code = await game.createRoom(displayName, user.id);
+      if (code != null && mounted) {
+        context.go(RpRoutes.lobby);
+      }
+    } finally {
+      if (mounted) setState(() => _creating = false);
+    }
+  }
+
+  Future<void> _onJoin() async {
     final code = sanitizeRoomCode(_codeController.text);
     if (code.length != 6) {
       setState(() => _joinError = RpStrings.homeJoinCodeLength);
       return;
     }
-    showComingSoon(context);
+    setState(() => _joining = true);
+    try {
+      final user = supabase.auth.currentUser!;
+      final displayName = user.userMetadata?['display_name'] as String? ??
+          user.userMetadata?['full_name'] as String? ??
+          user.email?.split('@').first ??
+          'Spieler';
+      final game = RatepanikApp.gameOf(context);
+      final err = await game.joinRoom(code, displayName);
+      if (err == null && mounted) {
+        context.go(RpRoutes.lobby);
+      } else if (err != null) {
+        setState(() => _joinError = err);
+      }
+    } finally {
+      if (mounted) setState(() => _joining = false);
+    }
+  }
+
+  Future<void> _logout() async {
+    await supabase.auth.signOut();
+    if (mounted) context.go(RpRoutes.landing);
   }
 
   @override
   Widget build(BuildContext context) {
+    final user = supabase.auth.currentUser;
+    final isGuest = user?.isAnonymous ?? true;
+    final displayName = user?.userMetadata?['display_name'] as String? ??
+        user?.userMetadata?['full_name'] as String? ??
+        user?.email?.split('@').first ??
+        RpStrings.player;
+
     return RpHeroBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
@@ -54,30 +109,79 @@ class _HomeScreenState extends State<HomeScreen> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                 children: [
-                  const _HomeHeader(),
+                  _HomeHeader(
+                    displayName: displayName,
+                    isGuest: isGuest,
+                    onLogout: _logout,
+                  ),
                   const SizedBox(height: 16),
-                  const _StreakCard(),
-                  const SizedBox(height: 12),
-                  const _CreateRoomCard(),
-                  const SizedBox(height: 12),
+
+                  // Create Room card (registered only)
+                  if (!isGuest) ...[
+                    _CreateRoomCard(
+                      creating: _creating,
+                      onTap: _createRoom,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // Join card
                   RpCard(
                     padding: const EdgeInsets.all(20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text(
-                          RpStrings.homeJoinKicker,
-                          style: Theme.of(context).textTheme.labelMedium
-                              ?.copyWith(
-                                color: RpColors.textSecondary,
-                                fontWeight: FontWeight.w700,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    RpStrings.homeJoinKicker,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelMedium
+                                        ?.copyWith(
+                                          color: RpColors.textSecondary,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    RpStrings.homeJoinTitle,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleLarge
+                                        ?.copyWith(
+                                            fontWeight: FontWeight.w800),
+                                  ),
+                                ],
                               ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          RpStrings.homeJoinTitle,
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.w800),
+                            ),
+                            // Slime avatars placeholder
+                            Row(
+                              children: [
+                                for (var i = 0; i < 3; i++)
+                                  Padding(
+                                    padding: EdgeInsets.only(
+                                        left: i > 0 ? 0 : 0),
+                                    child: CircleAvatar(
+                                      radius: 14,
+                                      backgroundColor: [
+                                        RpColors.purple,
+                                        RpColors.mint,
+                                        RpColors.peach,
+                                      ][i],
+                                      child: Text(
+                                        ['😊', '😎', '🤩'][i],
+                                        style: const TextStyle(fontSize: 14),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 16),
                         RpRoomCodeField(
@@ -87,30 +191,74 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(height: 12),
                         RpPrimaryButton(
-                          label: RpStrings.homeJoinButton,
-                          enabled: _codeController.text.length == 6,
+                          label: _joining
+                              ? RpStrings.loading
+                              : RpStrings.homeJoinButton,
+                          enabled:
+                              _codeController.text.length == 6 && !_joining,
                           onPressed: _onJoin,
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  Text(
-                    RpStrings.homePreviewHint,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: RpColors.textSecondary,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => context.go(RpRoutes.landing),
-                    child: Text(
-                      RpStrings.loginBackHome,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: RpColors.textSecondary,
+                  const SizedBox(height: 16),
+
+                  // 2x2 grid: Freunde, Statistik, Erfolge, Shop
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _HomeNavCard(
+                          title: RpStrings.homeFriends,
+                          subtitle: RpStrings.homeFriendsBody,
+                          color: const Color(0xFFE5F3FF),
+                          icon: Icons.people_alt_rounded,
+                          iconColor: RpColors.sky,
+                          onTap: () => context.push(RpRoutes.friends),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _HomeNavCard(
+                          title: RpStrings.homeStats,
+                          subtitle: 'Level 15 · 12 Spiele',
+                          color: const Color(0xFFF0EAFF),
+                          icon: Icons.bar_chart_rounded,
+                          iconColor: RpColors.purple,
+                          onTap: () => context.push(RpRoutes.profile),
+                        ),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _HomeNavCard(
+                          title: RpStrings.homeErfolge,
+                          subtitle: '3 von 20',
+                          color: const Color(0xFFFFF5E0),
+                          icon: Icons.emoji_events_rounded,
+                          iconColor: RpColors.yellow,
+                          onTap: () => context.push(RpRoutes.achievements),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _HomeNavCard(
+                          title: RpStrings.homeShop,
+                          subtitle: RpStrings.homeShopBody,
+                          color: const Color(0xFFE0FFF5),
+                          icon: Icons.shopping_bag_rounded,
+                          iconColor: RpColors.mint,
+                          onTap: () => context.push(RpRoutes.shop),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Streak
+                  const _StreakCard(),
                 ],
               ),
             ),
@@ -122,7 +270,15 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _HomeHeader extends StatelessWidget {
-  const _HomeHeader();
+  const _HomeHeader({
+    required this.displayName,
+    required this.isGuest,
+    required this.onLogout,
+  });
+
+  final String displayName;
+  final bool isGuest;
+  final VoidCallback onLogout;
 
   @override
   Widget build(BuildContext context) {
@@ -182,17 +338,18 @@ class _HomeHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                RpStrings.player,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                displayName,
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w800),
               ),
               Text(
-                RpStrings.partyPlayer,
+                isGuest ? 'Gast' : RpStrings.partyPlayer,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: RpColors.textSecondary,
-                  fontWeight: FontWeight.w500,
-                ),
+                      color: RpColors.textSecondary,
+                      fontWeight: FontWeight.w500,
+                    ),
               ),
             ],
           ),
@@ -213,13 +370,21 @@ class _HomeHeader extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               Text(
-                RpStrings.soon,
-                style: Theme.of(
-                  context,
-                ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+                '0',
+                style: Theme.of(context)
+                    .textTheme
+                    .labelLarge
+                    ?.copyWith(fontWeight: FontWeight.w700),
               ),
             ],
           ),
+        ),
+        const SizedBox(width: 8),
+        IconButton(
+          icon: const Icon(Icons.logout_rounded, size: 20),
+          color: RpColors.textSecondary,
+          onPressed: onLogout,
+          tooltip: RpStrings.homeLogout,
         ),
       ],
     );
@@ -243,15 +408,16 @@ class _StreakCard extends StatelessWidget {
               children: [
                 Text(
                   RpStrings.homeStreakTitle,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleSmall
+                      ?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 Text(
                   RpStrings.homeStreakNull,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: RpColors.textSecondary,
-                  ),
+                        color: RpColors.textSecondary,
+                      ),
                 ),
               ],
             ),
@@ -265,11 +431,11 @@ class _StreakCard extends StatelessWidget {
             ),
             child: Center(
               child: Text(
-                RpStrings.soon,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: RpColors.danger,
-                  fontWeight: FontWeight.w800,
-                ),
+                '4',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: RpColors.danger,
+                      fontWeight: FontWeight.w800,
+                    ),
               ),
             ),
           ),
@@ -280,14 +446,17 @@ class _StreakCard extends StatelessWidget {
 }
 
 class _CreateRoomCard extends StatelessWidget {
-  const _CreateRoomCard();
+  const _CreateRoomCard({required this.creating, required this.onTap});
+
+  final bool creating;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => showComingSoon(context),
+        onTap: creating ? null : onTap,
         borderRadius: BorderRadius.circular(RpRadii.lg),
         child: Ink(
           decoration: BoxDecoration(
@@ -310,8 +479,10 @@ class _CreateRoomCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        RpStrings.homeCreateKicker,
-                        style: Theme.of(context).textTheme.labelMedium
+                        RpStrings.homeCreateKicker.toUpperCase(),
+                        style: Theme.of(context)
+                            .textTheme
+                            .labelMedium
                             ?.copyWith(
                               color: RpColors.purple,
                               fontWeight: FontWeight.w700,
@@ -320,25 +491,107 @@ class _CreateRoomCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         RpStrings.homeCreateTitle,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleLarge
+                            ?.copyWith(fontWeight: FontWeight.w800),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         RpStrings.homeCreateBody,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: RpColors.textSecondary,
-                        ),
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: RpColors.textSecondary),
                       ),
                     ],
                   ),
                 ),
-                const Icon(
-                  Icons.chevron_right_rounded,
-                  color: RpColors.purple,
-                  size: 28,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.asset(
+                    'assets/rp/rp_home_create_room_256.png',
+                    width: 72,
+                    height: 72,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => const Icon(
+                      Icons.chevron_right_rounded,
+                      color: RpColors.purple,
+                      size: 28,
+                    ),
+                  ),
                 ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeNavCard extends StatelessWidget {
+  const _HomeNavCard({
+    required this.title,
+    required this.subtitle,
+    required this.color,
+    required this.icon,
+    required this.iconColor,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final Color color;
+  final IconData icon;
+  final Color iconColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(RpRadii.lg),
+        child: Ink(
+          height: 130,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(RpRadii.lg),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        title,
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: RpColors.textSecondary,
+                      size: 20,
+                    ),
+                  ],
+                ),
+                Text(
+                  subtitle,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: RpColors.textSecondary,
+                      ),
+                ),
+                const Spacer(),
+                Icon(icon, size: 36, color: iconColor),
               ],
             ),
           ),
