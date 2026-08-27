@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app.dart';
+import '../../core/supabase_config.dart';
 import '../../l10n/rp_strings.dart';
 import '../../routing/app_router.dart';
+import '../../services/game_service.dart';
 import '../../theme/rp_colors.dart';
 import '../../widgets/rp_buttons.dart';
-import '../../widgets/rp_coming_soon.dart';
 import '../../widgets/rp_hero_background.dart';
 import '../../widgets/rp_room_code_field.dart';
 
@@ -19,11 +21,18 @@ class LandingScreen extends StatefulWidget {
 class _LandingScreenState extends State<LandingScreen> {
   final _codeController = TextEditingController();
   String? _codeError;
+  bool _joining = false;
 
   @override
   void initState() {
     super.initState();
     _codeController.addListener(() => setState(() => _codeError = null));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final user = supabase.auth.currentUser;
+      if (user != null && !user.isAnonymous) {
+        context.go(RpRoutes.home);
+      }
+    });
   }
 
   @override
@@ -32,13 +41,34 @@ class _LandingScreenState extends State<LandingScreen> {
     super.dispose();
   }
 
-  void _onJoin() {
+  Future<void> _onJoinAsGuest() async {
     final code = sanitizeRoomCode(_codeController.text);
     if (code.length != 6) {
       setState(() => _codeError = RpStrings.landingCodeError);
       return;
     }
-    showComingSoon(context);
+    setState(() => _joining = true);
+    try {
+      var user = supabase.auth.currentUser;
+      if (user == null) {
+        await supabase.auth.signInAnonymously();
+        user = supabase.auth.currentUser;
+      }
+      if (user == null) return;
+
+      final game = RatepanikApp.gameOf(context);
+      final name = generateGuestName();
+      final err = await game.joinRoom(code, name);
+      if (err == null && mounted) {
+        context.go(RpRoutes.lobby);
+      } else if (err != null) {
+        setState(() => _codeError = err);
+      }
+    } catch (e) {
+      setState(() => _codeError = 'Beitritt fehlgeschlagen.');
+    } finally {
+      if (mounted) setState(() => _joining = false);
+    }
   }
 
   @override
@@ -86,18 +116,22 @@ class _LandingScreenState extends State<LandingScreen> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     RpStrings.landingGuestTitle,
                                     style: Theme.of(context)
                                         .textTheme
                                         .titleMedium
-                                        ?.copyWith(fontWeight: FontWeight.w800),
+                                        ?.copyWith(
+                                            fontWeight: FontWeight.w800),
                                   ),
                                   Text(
                                     RpStrings.landingGuestSubtitle,
-                                    style: Theme.of(context).textTheme.bodySmall
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
                                         ?.copyWith(
                                           color: RpColors.textSecondary,
                                         ),
@@ -111,13 +145,15 @@ class _LandingScreenState extends State<LandingScreen> {
                         RpRoomCodeField(
                           controller: _codeController,
                           errorText: _codeError,
-                          onSubmitted: (_) => _onJoin(),
+                          onSubmitted: (_) => _onJoinAsGuest(),
                         ),
                         const SizedBox(height: 16),
                         RpPrimaryButton(
-                          label: RpStrings.landingJoin,
-                          enabled: canJoin,
-                          onPressed: _onJoin,
+                          label: _joining
+                              ? RpStrings.loading
+                              : RpStrings.landingJoin,
+                          enabled: canJoin && !_joining,
+                          onPressed: _onJoinAsGuest,
                         ),
                       ],
                     ),
@@ -125,19 +161,24 @@ class _LandingScreenState extends State<LandingScreen> {
                   const SizedBox(height: 24),
                   Row(
                     children: [
-                      const Expanded(child: Divider(color: RpColors.border)),
+                      const Expanded(
+                          child: Divider(color: RpColors.border)),
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 16),
                         child: Text(
                           RpStrings.or,
-                          style: Theme.of(context).textTheme.bodyMedium
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
                               ?.copyWith(
                                 color: RpColors.textSecondary,
                                 fontWeight: FontWeight.w500,
                               ),
                         ),
                       ),
-                      const Expanded(child: Divider(color: RpColors.border)),
+                      const Expanded(
+                          child: Divider(color: RpColors.border)),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -147,7 +188,7 @@ class _LandingScreenState extends State<LandingScreen> {
                         child: RpSoftButton(
                           label: RpStrings.landingRegister,
                           icon: Icons.person_add_alt_1_rounded,
-                          onPressed: () => showComingSoon(context),
+                          onPressed: () => context.push(RpRoutes.register),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -181,7 +222,9 @@ class _LandingScreenState extends State<LandingScreen> {
                       Flexible(
                         child: Text(
                           RpStrings.landingFooter,
-                          style: Theme.of(context).textTheme.bodySmall
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
                               ?.copyWith(color: RpColors.textSecondary),
                         ),
                       ),
@@ -231,9 +274,9 @@ class _LandingHero extends StatelessWidget {
           RpStrings.landingTagline,
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: RpColors.textSecondary,
-            fontWeight: FontWeight.w500,
-          ),
+                color: RpColors.textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
         ),
         const SizedBox(height: 28),
       ],
